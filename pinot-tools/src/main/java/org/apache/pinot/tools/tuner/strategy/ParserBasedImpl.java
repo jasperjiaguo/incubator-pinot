@@ -203,7 +203,7 @@ public class ParserBasedImpl implements Strategy {
     for (Tuple2<String, Long> tuple2 : sortedPure) {
       reportOut += "Dimension: " + tuple2._1() + "  " + tuple2._2().toString() + "\n";
     }
-    reportOut += "***********************************************************************************\n";
+    reportOut += "\n***********************************************************************************\n";
     for (Tuple2<String, BigInteger> tuple2 : sortedWeighted) {
       reportOut += "Dimension: " + tuple2._1() + "  " + tuple2._2().toString() + "\n";
     }
@@ -376,7 +376,7 @@ public class ParserBasedImpl implements Strategy {
 
         BigFraction selectivity = _metaManager.getColumnSelectivity(_tableNameWithoutType, colName);
         LOGGER.debug("Final Cardinality: {} {} {}", selectivity, _tableNameWithoutType, colName);
-        if (selectivity.compareTo(new BigFraction(_selectivityThreshold)) <= 0) {
+        if (selectivity.compareTo(new BigFraction(BigInteger.ONE)) <= 0) {
           return ret;
         }
 
@@ -402,7 +402,7 @@ public class ParserBasedImpl implements Strategy {
 
         BigFraction selectivity = _metaManager.getColumnSelectivity(_tableNameWithoutType, colName);
         LOGGER.debug("Final Cardinality: {} {} {}", selectivity, _tableNameWithoutType, colName);
-        if (selectivity.compareTo(new BigFraction(_selectivityThreshold)) <= 0) {
+        if (selectivity.compareTo(new BigFraction(BigInteger.ONE)) <= 0) {
           return ret;
         }
 

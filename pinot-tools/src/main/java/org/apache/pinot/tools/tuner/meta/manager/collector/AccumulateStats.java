@@ -57,7 +57,7 @@ public class AccumulateStats implements Strategy {
   }
 
   /**
-   * Filter out irrelevant segments
+   * Filter out irrelevant tables' segments.
    * @param filePaths the (tableNamesWithoutType,segmentPaths) extracted and parsed from directory
    * @return
    */
@@ -83,9 +83,6 @@ public class AccumulateStats implements Strategy {
     LOGGER.info("Extracting: " + pathWrapper.getFile().getAbsolutePath() + " to " + tmpFolder.getAbsolutePath());
     try {
       tmpFolder.mkdirs();
-      LOGGER.info(
-          (UNTAR + pathWrapper.getFile().getAbsolutePath() + EXCLUDE_DATA + STRIP_PATHS + OUT_PUT_PATH + tmpFolder
-              .getAbsolutePath()));
       Process p = Runtime.getRuntime().exec(
           (UNTAR + pathWrapper.getFile().getAbsolutePath() + EXCLUDE_DATA
               + STRIP_PATHS + OUT_PUT_PATH + tmpFolder.getAbsolutePath()));
@@ -104,7 +101,7 @@ public class AccumulateStats implements Strategy {
         throw new NullPointerException();
       }
     } catch (NullPointerException | ArrayIndexOutOfBoundsException e) {
-      LOGGER.error("No metadata.properties file for {}!", pathWrapper.getFile().getName());
+      LOGGER.error("No metadata.properties file for {}!", pathWrapper.getFile().getAbsolutePath());
       deleteTmp(tmpFolder);
       return;
     }
@@ -122,8 +119,8 @@ public class AccumulateStats implements Strategy {
     String metadataString = "";
     try {
       metadataString = FileUtils.readFileToString(metaDataProperties);
-    } catch (IOException e) {
-      LOGGER.error("No metadata file read err for {}!", pathWrapper.getFile().getName());
+    } catch (IOException | NullPointerException e) {
+      LOGGER.error("No metadata.properties for {}!", pathWrapper.getFile().getAbsolutePath());
       deleteTmp(tmpFolder);
       return;
     }
@@ -131,8 +128,8 @@ public class AccumulateStats implements Strategy {
     String indexMapString = "";
     try {
       indexMapString = FileUtils.readFileToString(indexMap);
-    } catch (IOException e) {
-      LOGGER.error("No indexMap file read err for {}!", pathWrapper.getFile().getName());
+    } catch (IOException | NullPointerException e) {
+      LOGGER.error("No index_map for {}!", pathWrapper.getFile().getName());
       indexMapString = "";
     }
 
