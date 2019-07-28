@@ -2,15 +2,11 @@ package org.apache.pinot.tools.tuner.meta.manager.collector;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
@@ -29,7 +25,7 @@ public class AccumulateStats implements Strategy {
   private static final String UNTAR = "tar -xf ";
   private static final String TMP_THREAD_FILE_PREFIX = "/tmpThreadFile";
   private static final String EXCLUDE_DATA = " --exclude columns.psf ";
-  private static final String STRIP_2COMPONENTS = " --strip-components=2 ";
+  private static final String STRIP_PATHS = " --xform=\'s#^\\.+/##x\' ";
   private static final String OUT_PUT_PATH = " -C ";
   private static final String RM_RF = "rm -rf ";
 
@@ -82,17 +78,18 @@ public class AccumulateStats implements Strategy {
       Map<String, Map<String, AbstractAccumulator>> AccumulatorOut) {
     PathWrapper pathWrapper = ((PathWrapper) filePaths);
 
-    File tmpFolder = new File(_outputDir.getAbsolutePath() + TMP_THREAD_FILE_PREFIX + Thread.currentThread()
-        .getId()); //+"_"+(int)(Math.random()*100)
+    File tmpFolder = new File(_outputDir.getAbsolutePath() + TMP_THREAD_FILE_PREFIX
+        + Thread.currentThread().getId() + "_" + (System.currentTimeMillis() % 1000000));
     LOGGER.info("Extracting: " + pathWrapper.getFile().getAbsolutePath() + " to " + tmpFolder.getAbsolutePath());
     try {
       tmpFolder.mkdirs();
       Process p = Runtime.getRuntime().exec(
-          (UNTAR + pathWrapper.getFile().getAbsolutePath() + EXCLUDE_DATA + STRIP_2COMPONENTS + OUT_PUT_PATH + tmpFolder
-              .getAbsolutePath()));
+          (UNTAR + pathWrapper.getFile().getAbsolutePath() + EXCLUDE_DATA
+              + STRIP_PATHS + OUT_PUT_PATH + tmpFolder.getAbsolutePath()));
       p.waitFor();
     } catch (IOException | InterruptedException e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("Error while extracting {}", pathWrapper.getFile().getName());
+      deleteTmp(tmpFolder);
       return;
     }
 
@@ -104,7 +101,8 @@ public class AccumulateStats implements Strategy {
         throw new NullPointerException();
       }
     } catch (NullPointerException | ArrayIndexOutOfBoundsException e) {
-      LOGGER.error("No metadata.properties for {}!", pathWrapper.getFile().getName());
+      LOGGER.error("No metadata.properties file for {}!", pathWrapper.getFile().getName());
+      deleteTmp(tmpFolder);
       return;
     }
 
@@ -114,7 +112,7 @@ public class AccumulateStats implements Strategy {
         throw new NullPointerException();
       }
     } catch (NullPointerException | ArrayIndexOutOfBoundsException e) {
-      LOGGER.error("No index_map for {}!", pathWrapper.getFile().getName());
+      LOGGER.error("No index_map file for {}!", pathWrapper.getFile().getName());
       indexMap = null;
     }
 
@@ -123,6 +121,7 @@ public class AccumulateStats implements Strategy {
       metadataString = FileUtils.readFileToString(metaDataProperties);
     } catch (IOException e) {
       LOGGER.error("No metadata file read err for {}!", pathWrapper.getFile().getName());
+      deleteTmp(tmpFolder);
       return;
     }
 
@@ -164,12 +163,14 @@ public class AccumulateStats implements Strategy {
           .addTotalNumberOfEntries(totalNumberOfEntries).merge();
     }
 
+    deleteTmp(tmpFolder);
+  }
+
+  private void deleteTmp(File tmpFolder) {
     try {
-      Process p = Runtime.getRuntime().exec(RM_RF + tmpFolder.getAbsolutePath());
-      p.waitFor();
-    } catch (IOException | InterruptedException e) {
+      FileUtils.deleteDirectory(tmpFolder);
+    } catch (IOException e) {
       LOGGER.error(e.getMessage());
-      return;
     }
   }
 

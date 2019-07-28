@@ -15,10 +15,16 @@ import org.apache.pinot.tools.tuner.strategy.OLSAnalysisImpl;
 public class TunerTest extends TunerDriver {
   public static void main(String[] args) {
     TunerDriver metaFetch = new TunerTest().setThreadPoolSize(3)
-        .setStrategy(new AccumulateStats.Builder().setTableNamesWithoutType(new HashSet<String>() {{
-          add("scin_v2_additive");
-        }}).setOutputDir("/Users/jiaguo/tmp3").build()).setQuerySrc(new CompressedFilePathIter.Builder()
-            .set_directory("/Users/jiaguo/Workspace/pinot-tuna-script/data/segments").build()).setMetaManager(null);
+        .setStrategy(new AccumulateStats.Builder()
+            .setTableNamesWithoutType(new HashSet<String>() {{
+              add("scin_v2_additive");
+            }})
+            .setOutputDir("/Users/jiaguo/tmp3")
+            .build())
+        .setQuerySrc(new CompressedFilePathIter.Builder()
+            .set_directory("/Users/jiaguo/Workspace/pinot-tuna-script/data/segments")
+            .build())
+        .setMetaManager(null);
     metaFetch.execute();
 
 //    TunerDriver parserBased = new TunerTest().setThreadPoolSize(3).setStrategy(
