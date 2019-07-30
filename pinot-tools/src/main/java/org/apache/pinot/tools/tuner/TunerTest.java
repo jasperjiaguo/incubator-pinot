@@ -2,11 +2,13 @@ package org.apache.pinot.tools.tuner;
 
 import java.util.HashSet;
 import org.apache.pinot.tools.tuner.driver.TunerDriver;
+import org.apache.pinot.tools.tuner.meta.manager.JsonFileMetaManagerImpl;
 import org.apache.pinot.tools.tuner.meta.manager.collector.AccumulateStats;
 import org.apache.pinot.tools.tuner.meta.manager.collector.CompressedFilePathIter;
 import org.apache.pinot.tools.tuner.query.src.LogQuerySrcImpl;
 import org.apache.pinot.tools.tuner.query.src.parser.BrokerLogParserImpl;
 import org.apache.pinot.tools.tuner.strategy.OLSAnalysisImpl;
+import org.apache.pinot.tools.tuner.strategy.ParserBasedImpl;
 
 
 /**
@@ -14,29 +16,29 @@ import org.apache.pinot.tools.tuner.strategy.OLSAnalysisImpl;
  */
 public class TunerTest extends TunerDriver {
   public static void main(String[] args) {
-    TunerDriver metaFetch = new TunerTest().setThreadPoolSize(3)
-        .setStrategy(new AccumulateStats.Builder()
-            .setTableNamesWithoutType(new HashSet<String>() {{
-              add("scin_v2_additive");
-            }})
-            .setOutputDir("/Users/jiaguo/tmp3")
-            .build())
-        .setQuerySrc(new CompressedFilePathIter.Builder()
-            .set_directory("/Users/jiaguo/Workspace/pinot-tuna-script/data/segments")
-            .build())
-        .setMetaManager(null);
-    metaFetch.execute();
+//    TunerDriver metaFetch = new TunerTest().setThreadPoolSize(3)
+//        .setTuningStrategy(new AccumulateStats.Builder()
+//            .setTableNamesWithoutType(new HashSet<String>() {{
+//              add("scin_v2_additive");
+//            }})
+//            .setOutputDir("/Users/jiaguo/tmp3")
+//            .build())
+//        .setQuerySrc(new CompressedFilePathIter.Builder()
+//            .set_directory("/Users/jiaguo/Workspace/pinot-tuna-script/data/segments")
+//            .build())
+//        .setMetaManager(null);
+//    metaFetch.execute();
 
-//    TunerDriver parserBased = new TunerTest().setThreadPoolSize(3).setStrategy(
-//        new ParserBasedImpl.Builder().setAlgorithmOrder(ParserBasedImpl.SECOND_ORDER)
-//            .setNumEntriesScannedThreshold(ParserBasedImpl.NO_IN_FILTER_THRESHOLD)
-//            .setNumProcessedThreshold(ParserBasedImpl.NO_PROCESSED_THRESH).build()).setQuerySrc(
-//        new LogQuerySrcImpl.Builder().setValidLineBeginnerRegex(LogQuerySrcImpl.REGEX_VALID_LINE_TIME)
-//            .setParser(new BrokerLogParserImpl()).setPath("/Users/jiaguo/finalTestData/broker.scin_v2_additive.log")
-//            .build()).setMetaManager(new JsonFileMetaManagerImpl.Builder()
-//        .setPath("/Users/jiaguo/tmp3/metadata.json")
-//        .setUseExistingIndex(JsonFileMetaManagerImpl.DONT_USE_EXISTING_INDEX).build());
-//    parserBased.execute();
+    TunerDriver parserBased = new TunerTest().setThreadPoolSize(0).setTuningStrategy(
+        new ParserBasedImpl.Builder().setAlgorithmOrder(ParserBasedImpl.SECOND_ORDER)
+            .setNumEntriesScannedThreshold(ParserBasedImpl.NO_IN_FILTER_THRESHOLD)
+            .setNumProcessedThreshold(ParserBasedImpl.NO_PROCESSED_THRESH).build()).setQuerySrc(
+        new LogQuerySrcImpl.Builder().setValidLinePrefixRegex(LogQuerySrcImpl.REGEX_VALID_LINE_TIME)
+            .setParser(new BrokerLogParserImpl()).setPath("/Users/jiaguo/finalTestData/broker.scin_v2_additive.log")
+            .build()).setMetaManager(new JsonFileMetaManagerImpl.Builder()
+        .setPath("/Users/jiaguo/finalTestData/meta/scinv2/metadata.json")
+        .setUseExistingIndex(JsonFileMetaManagerImpl.DONT_USE_EXISTING_INDEX).build());
+    parserBased.execute();
 
 //    TunerDriver freqBased=new TunerTest()
 //        .setThreadPoolSize(3)

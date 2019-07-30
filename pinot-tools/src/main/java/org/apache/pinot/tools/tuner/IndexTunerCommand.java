@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.pinot.tools.tuner;
 
 import java.util.Arrays;
@@ -12,7 +30,7 @@ import org.apache.pinot.tools.tuner.strategy.ParserBasedImpl;
 import org.kohsuke.args4j.Option;
 
 
-public class TunerCommand extends AbstractBaseCommand implements Command {
+public class IndexTunerCommand extends AbstractBaseCommand implements Command {
   private static final long DEFAULT_NUM_ENTRIES_SCANNED_THRESHOLD = 0;
   private static final long DEFAULT_NUM_QUERIES_TO_GIVE_RECOMMENDATION = 0;
 
@@ -31,7 +49,7 @@ public class TunerCommand extends AbstractBaseCommand implements Command {
   @Option(name = "-entriesScannedThreshold", required = false, metaVar = "<long>", usage = "Log lines with numEntriesScannedInFilter below this threshold will be excluded.")
   private long _numEntriesScannedThreshold = DEFAULT_NUM_ENTRIES_SCANNED_THRESHOLD;
 
-  @Option(name = "-queriesToReport", required = false, metaVar = "<long>", usage = "Log lines with numEntriesScannedInFilter below this threshold will be excluded.")
+  @Option(name = "-queriesToReport", required = false, metaVar = "<long>", usage = "Tables with log lines scanned threshold will be excluded.")
   private long _numQueriesToGiveRecommendation = DEFAULT_NUM_QUERIES_TO_GIVE_RECOMMENDATION;
 
   @Option(name = "-tables", required = false, usage = "Comma separated list of table names to work on without type (unset run on all tables)")
@@ -49,7 +67,7 @@ public class TunerCommand extends AbstractBaseCommand implements Command {
 
     if (_strategy.equals(INVERTED_INDEX)) {
       TunerDriver parserBased = new TunerDriver().setThreadPoolSize(Runtime.getRuntime().availableProcessors() - 1)
-          .setStrategy(new ParserBasedImpl.Builder()
+          .setTuningStrategy(new ParserBasedImpl.Builder()
               .setTableNamesWithoutType(tableNamesWithoutType)
               .setNumProcessedThreshold(_numQueriesToGiveRecommendation)
               .setAlgorithmOrder(ParserBasedImpl.FIRST_ORDER)
@@ -65,7 +83,7 @@ public class TunerCommand extends AbstractBaseCommand implements Command {
       parserBased.execute();
     } else if (_strategy.equals(SORTED_INDEX)) {
       TunerDriver parserBased = new TunerDriver().setThreadPoolSize(Runtime.getRuntime().availableProcessors() - 1)
-          .setStrategy(new ParserBasedImpl.Builder()
+          .setTuningStrategy(new ParserBasedImpl.Builder()
               .setTableNamesWithoutType(tableNamesWithoutType)
               .setNumProcessedThreshold(_numQueriesToGiveRecommendation)
               .setAlgorithmOrder(ParserBasedImpl.SECOND_ORDER)
@@ -92,7 +110,7 @@ public class TunerCommand extends AbstractBaseCommand implements Command {
 
   @Override
   public String getName() {
-    return "Tuner";
+    return "IndexTunerCommand";
   }
 
   @Override

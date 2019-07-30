@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.pinot.tools.tuner.meta.manager.collector;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,12 +33,12 @@ import org.apache.pinot.common.utils.JsonUtils;
 import org.apache.pinot.tools.tuner.meta.manager.MetaManager;
 import org.apache.pinot.tools.tuner.query.src.stats.wrapper.AbstractQueryStats;
 import org.apache.pinot.tools.tuner.strategy.AbstractAccumulator;
-import org.apache.pinot.tools.tuner.strategy.Strategy;
+import org.apache.pinot.tools.tuner.strategy.TuningStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class AccumulateStats implements Strategy {
+public class AccumulateStats implements TuningStrategy {
   private static final Logger LOGGER = LoggerFactory.getLogger(AccumulateStats.class);
   private static final String UNTAR = "tar -xf ";
   private static final String TMP_THREAD_FILE_PREFIX = "/tmpThreadFile";
@@ -37,7 +55,6 @@ public class AccumulateStats implements Strategy {
   private static final String REGEX_IS_SORTED = "\\.isSorted = (.*)";
   private static final String REGEX_TOTAL_NUMBER_OF_ENTRIES = "\\.totalNumberOfEntries = (.*)";
   private static final String REGEX_INVERTED_INDEX_SIZE = "\\.inverted_index\\.size = (.*)";
-
 
   private HashSet<String> _tableNamesWithoutType;
   private File _outputDir;
@@ -88,7 +105,7 @@ public class AccumulateStats implements Strategy {
               + STRIP_PATHS + OUT_PUT_PATH + tmpFolder.getAbsolutePath()));
       p.waitFor();
     } catch (IOException | InterruptedException e) {
-      LOGGER.error("Error while extracting {}", pathWrapper.getFile().getName());
+      LOGGER.error("Error while extracting {}", pathWrapper.getFile().getAbsolutePath());
       deleteTmp(tmpFolder);
       return;
     }
@@ -112,7 +129,7 @@ public class AccumulateStats implements Strategy {
         throw new NullPointerException();
       }
     } catch (NullPointerException | ArrayIndexOutOfBoundsException e) {
-      LOGGER.error("No index_map file for {}!", pathWrapper.getFile().getName());
+      LOGGER.error("No index_map file for {}!", pathWrapper.getFile().getAbsolutePath());
       indexMap = null;
     }
 
@@ -129,7 +146,7 @@ public class AccumulateStats implements Strategy {
     try {
       indexMapString = FileUtils.readFileToString(indexMap);
     } catch (IOException | NullPointerException e) {
-      LOGGER.error("No index_map for {}!", pathWrapper.getFile().getName());
+      LOGGER.error("No index_map for {}!", pathWrapper.getFile().getAbsolutePath());
       indexMapString = "";
     }
 

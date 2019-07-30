@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.pinot.tools.tuner.strategy;
 
 import java.text.MessageFormat;
@@ -25,7 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class OLSAnalysisImpl implements Strategy {
+public class OLSAnalysisImpl implements TuningStrategy {
   private static final Logger LOGGER = LoggerFactory.getLogger(OLSAnalysisImpl.class);
 
   public final static long NO_IN_FILTER_THRESHOLD = 0;
@@ -218,7 +236,6 @@ public class OLSAnalysisImpl implements Strategy {
             String.format("%.0f", numEntriesScannedInFilterPercentile[9] * params[0]));
         reportOut += MessageFormat.format("\nR-square: {0}\n", rSquared);
         reportOut += String.format("Params: %s %s\n", Double.toString(params[0]), Double.toString(params[1]));
-
       } else {
         reportOut += "\nunable to predict the optimization boundary of this table!";
       }
@@ -227,7 +244,6 @@ public class OLSAnalysisImpl implements Strategy {
     }
     LOGGER.info(reportOut);
   }
-
 
   /**
    * Parse and count the total bitmaps used in a query

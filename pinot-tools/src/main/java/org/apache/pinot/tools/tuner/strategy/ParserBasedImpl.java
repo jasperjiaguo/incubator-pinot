@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.pinot.tools.tuner.strategy;
 
 import io.vavr.Tuple2;
@@ -27,7 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class ParserBasedImpl implements Strategy {
+public class ParserBasedImpl implements TuningStrategy {
   private static final Logger LOGGER = LoggerFactory.getLogger(ParserBasedImpl.class);
 
   public final static int FIRST_ORDER = 1;
@@ -238,7 +256,6 @@ public class ParserBasedImpl implements Strategy {
       _queryString = queryString;
     }
 
-
     /**
      * Navigate from root to predicateListContext of whereClauseContext, where all the filtering happens
      * @return a list of sorted tuples List<Tuple2<List<colName>, Score>>
@@ -279,7 +296,6 @@ public class ParserBasedImpl implements Strategy {
       cropList(results, _algorithmOrder);
       return results;
     }
-
 
     /**
      * Parse predicate list connected by AND and OR (recursively)
@@ -342,6 +358,17 @@ public class ParserBasedImpl implements Strategy {
       }
     }
 
+    private BigFraction EquivalentSelectivity(Boolean invertSelection, BigFraction selectivity, int clauseLength,
+        BigFraction avgEntries) {
+      BigFraction equvLen = avgEntries.multiply(clauseLength);
+      if (invertSelection == false) {
+        return selectivity.divide(equvLen);
+      } else if (selectivity.subtract(equvLen).compareTo(BigFraction.ONE) <= 0) { //(selectivity-equvLen)<=1
+        return selectivity;
+      } else {
+        return selectivity.divide(selectivity.subtract(equvLen));
+      }
+    }
 
     /**
      * Parse leaf predicates
@@ -363,6 +390,7 @@ public class ParserBasedImpl implements Strategy {
      */
     List<Tuple2<List<String>, BigFraction>> parsePredicate(PQL2Parser.PredicateContext predicateContext) {
       LOGGER.debug("Parsing predicate: {}", predicateContext.getText());
+
       if (predicateContext instanceof PQL2Parser.PredicateParenthesisGroupContext) {
         PQL2Parser.PredicateParenthesisGroupContext predicateParenthesisGroupContext =
             (PQL2Parser.PredicateParenthesisGroupContext) predicateContext;
@@ -370,55 +398,50 @@ public class ParserBasedImpl implements Strategy {
       } else if (predicateContext instanceof PQL2Parser.InPredicateContext) {
         LOGGER.debug("Entering IN clause!");
         String colName = ((PQL2Parser.InPredicateContext) predicateContext).inClause().expression().getText();
-        List<String> colNameList = new ArrayList<>();
-        colNameList.add(colName);
         ArrayList<Tuple2<List<String>, BigFraction>> ret = new ArrayList<>();
-
         BigFraction selectivity = _metaManager.getColumnSelectivity(_tableNameWithoutType, colName);
-        LOGGER.debug("Final Cardinality: {} {} {}", selectivity, _tableNameWithoutType, colName);
-        if (selectivity.compareTo(new BigFraction(BigInteger.ONE)) <= 0) {
+        LOGGER.debug("Avg Cardinality: {} {} {}", selectivity, _tableNameWithoutType, colName);
+
+        if (selectivity.compareTo(BigFraction.ONE) <= 0) {
           return ret;
         }
 
+        List<String> colNameList = new ArrayList<>();
+        colNameList.add(colName);
+        BigFraction avgEntries = _metaManager.getAverageNumEntries(_tableNameWithoutType, colName);
         int lenFilter = ((PQL2Parser.InPredicateContext) predicateContext).inClause().literal().size();
-        if (((PQL2Parser.InPredicateContext) predicateContext).inClause().NOT() != null) {
-          if (selectivity.subtract(lenFilter).compareTo(BigFraction.ZERO) <= 0) {
-            ret.add(new Tuple2<>(colNameList, selectivity));
-            return ret;
-          }
-          ret.add(new Tuple2<>(colNameList, selectivity.divide(selectivity.subtract(lenFilter))));
-        } else {
-          ret.add(new Tuple2<>(colNameList, selectivity.divide(lenFilter)));
-        }
+        Boolean notIn = ((PQL2Parser.InPredicateContext) predicateContext).inClause().NOT() != null;
+
+        ret.add(new Tuple2<>(colNameList, EquivalentSelectivity(notIn, selectivity, lenFilter, avgEntries)));
+
         LOGGER.debug("IN clause ret {}", ret.toString());
         return ret;
       } else if (predicateContext instanceof PQL2Parser.ComparisonPredicateContext) {
         LOGGER.debug("Entering COMP clause!");
         String colName =
             ((PQL2Parser.ComparisonPredicateContext) predicateContext).comparisonClause().expression(0).getText();
-        List<String> colNameList = new ArrayList<>();
-        colNameList.add(colName);
         ArrayList<Tuple2<List<String>, BigFraction>> ret = new ArrayList<>();
-
         BigFraction selectivity = _metaManager.getColumnSelectivity(_tableNameWithoutType, colName);
-        LOGGER.debug("Final Cardinality: {} {} {}", selectivity, _tableNameWithoutType, colName);
-        if (selectivity.compareTo(new BigFraction(BigInteger.ONE)) <= 0) {
+        LOGGER.debug("Avg Cardinality: {} {} {}", selectivity, _tableNameWithoutType, colName);
+
+        if (selectivity.compareTo(BigFraction.ONE) <= 0) {
           return ret;
         }
+
+        List<String> colNameList = new ArrayList<>();
+        colNameList.add(colName);
+        BigFraction avgEntries = _metaManager.getAverageNumEntries(_tableNameWithoutType, colName);
 
         String comparisonOp =
             ((PQL2Parser.ComparisonPredicateContext) predicateContext).comparisonClause().comparisonOperator()
                 .getText();
         LOGGER.debug("COMP operator {}", comparisonOp);
         if (comparisonOp.equals("=")) {
-          ret.add(new Tuple2<>(colNameList, selectivity));
+          ret.add(new Tuple2<>(colNameList, EquivalentSelectivity(false, selectivity, 1, avgEntries)));
           LOGGER.debug("COMP clause ret {}", ret.toString());
           return ret;
         } else if (comparisonOp.equals("!=") || comparisonOp.equals("<>")) {
-          if (selectivity.subtract(BigInteger.ONE).compareTo(BigFraction.ZERO) <= 0) {
-            return ret;
-          }
-          ret.add(new Tuple2<>(colNameList, selectivity.divide(selectivity.subtract(BigFraction.ONE))));
+          ret.add(new Tuple2<>(colNameList, EquivalentSelectivity(true, selectivity, 1, avgEntries)));
           LOGGER.debug("COMP clause ret {}", ret.toString());
           return ret;
         } else {

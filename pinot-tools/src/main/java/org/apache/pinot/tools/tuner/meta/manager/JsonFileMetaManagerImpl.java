@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.pinot.tools.tuner.meta.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * The implementation of MetaManager to read formatted data from Json file
+ * The implementation of {@link MetaManager} to read formatted data from Json file
  */
 public class JsonFileMetaManagerImpl implements MetaManager {
   private static final Logger LOGGER = LoggerFactory.getLogger(JsonFileMetaManagerImpl.class);
@@ -25,7 +43,7 @@ public class JsonFileMetaManagerImpl implements MetaManager {
   public static final Boolean USE_EXISTING_INDEX = true;
   public static final Boolean DONT_USE_EXISTING_INDEX = false;
 
-   /*Meta data type:
+  /*Meta data type:
    *COL_META: Aggregated (sum and weighted sum of metadata)
    *SEGMENT_META: Individually stored metadata of each segment
    */
@@ -136,8 +154,22 @@ public class JsonFileMetaManagerImpl implements MetaManager {
     return false;
   }
 
+  public BigFraction getAverageNumEntries(String tableNameWithoutType, String columnName) {
+    try {
+      BigInteger entriesNumerator = new BigInteger(getColField(tableNameWithoutType, columnName, SUM_TOTAL_ENTRIES));
+      BigInteger entriesDenominator = new BigInteger(getColField(tableNameWithoutType, columnName, SUM_DOCS));
+      if (entriesNumerator.compareTo(entriesDenominator) < 0 || entriesDenominator.equals(BigInteger.ZERO)) {
+        throw new Exception();
+      }
+      return new BigFraction(entriesNumerator, entriesDenominator);
+    } catch (Exception e) {
+      LOGGER.error("Invalid AverageNumEntries info for {} {}", tableNameWithoutType, columnName);
+      return BigFraction.ONE;
+    }
+  }
+
   public BigFraction getColumnSelectivity(String tableNameWithoutType, String columnName) {
-    LOGGER.debug("Getting card from: {} {}", tableNameWithoutType, columnName);
+    LOGGER.debug("Getting cardinality from: {} {}", tableNameWithoutType, columnName);
 
     if (_additionalMaskingCols.getOrDefault(tableNameWithoutType, new HashSet<>()).contains(columnName)) {
       return BigFraction.ONE;
@@ -163,7 +195,7 @@ public class JsonFileMetaManagerImpl implements MetaManager {
 
     BigFraction sorted_ratio;
     if (nSortedNumerator == null || nSortedDenominator == null) {
-      //LOGGER.error("{} {}'s sort info does not exist!", tableNameWithoutType, columnName);
+      LOGGER.error("{} {}'s sort info does not exist!", tableNameWithoutType, columnName);
       sorted_ratio = BigFraction.ZERO;
     } else if (nSortedNumerator.equals(nSortedDenominator)) {
       return BigFraction.ONE;
@@ -175,19 +207,19 @@ public class JsonFileMetaManagerImpl implements MetaManager {
     BigFraction averageCard = new BigFraction(new BigInteger(cardNumerator), new BigInteger(cardDenominator));
     BigFraction ret = averageCard.multiply(sorted_ratio);
 
-//    LOGGER.debug("Cardinality: table:{} column:{} card: {}/{}, sort: {}/{}, final {}",
-//        tableNameWithoutType, columnName, cardNumerator,
-//        cardDenominator, nSortedNumerator, nSortedDenominator, ret
-//        );
-
     return ret;
   }
 
   public String getSegmentField(String tableNameWithoutType, String columnName, String segmentName, String fieldName) {
     tableNameWithoutType = Pattern.compile(TYPE_REGEX).matcher(tableNameWithoutType).replaceFirst("");
-    JsonNode ret = _aggregatedMap.get(tableNameWithoutType).get(columnName).get(segmentName).get(fieldName);
-    if (ret == null) {
-      LOGGER.error("tableNameWithoutType:{} columnName:{} segmentName:{} fieldName:{} Does not exist!",
+    JsonNode ret;
+    try {
+      ret = _segmentMap.get(tableNameWithoutType).get(columnName).get(segmentName).get(fieldName);
+      if (ret == null) {
+        throw new NullPointerException();
+      }
+    } catch (NullPointerException e) {
+      LOGGER.debug("tableNameWithoutType:{} columnName:{} segmentName:{} field:{} Does not exist!",
           tableNameWithoutType, columnName, segmentName, fieldName);
       return null;
     }
@@ -199,14 +231,12 @@ public class JsonFileMetaManagerImpl implements MetaManager {
     JsonNode ret;
     try {
       ret = _aggregatedMap.get(tableNameWithoutType).get(columnName).get(fieldName);
+      if (ret == null) {
+        throw new NullPointerException();
+      }
     } catch (NullPointerException e) {
-      LOGGER.debug("tableNameWithoutType:{} columnName:{} Does not exist!", tableNameWithoutType, columnName);
-      return null;
-    }
-    if (ret == null) {
-      LOGGER
-          .debug("tableNameWithoutType:{} columnName:{} fieldName:{} Does not exist!", tableNameWithoutType, columnName,
-              fieldName);
+      LOGGER.debug("tableNameWithoutType:{} columnName:{} fieldName:{} Does not exist!",
+          tableNameWithoutType, columnName, fieldName);
       return null;
     }
     return ret.asText();
