@@ -30,11 +30,11 @@ public class TunerTest extends TunerDriver {
 //    metaFetch.execute();
 
     TunerDriver parserBased = new TunerTest().setThreadPoolSize(0).setTuningStrategy(
-        new ParserBasedImpl.Builder().setAlgorithmOrder(ParserBasedImpl.SECOND_ORDER)
+        new ParserBasedImpl.Builder().setAlgorithmOrder(ParserBasedImpl.FIRST_ORDER)
             .setNumEntriesScannedThreshold(ParserBasedImpl.NO_IN_FILTER_THRESHOLD)
             .setNumProcessedThreshold(ParserBasedImpl.NO_PROCESSED_THRESH).build()).setQuerySrc(
         new LogQuerySrcImpl.Builder().setValidLinePrefixRegex(LogQuerySrcImpl.REGEX_VALID_LINE_TIME)
-            .setParser(new BrokerLogParserImpl()).setPath("/Users/jiaguo/finalTestData/broker.scin_v2_additive.log")
+            .setParser(new BrokerLogParserImpl()).setPath("/Users/jiaguo/scin_v2_additive.broker.log")
             .build()).setMetaManager(new JsonFileMetaManagerImpl.Builder()
         .setPath("/Users/jiaguo/finalTestData/meta/scinv2/metadata.json")
         .setUseExistingIndex(JsonFileMetaManagerImpl.DONT_USE_EXISTING_INDEX).build());
