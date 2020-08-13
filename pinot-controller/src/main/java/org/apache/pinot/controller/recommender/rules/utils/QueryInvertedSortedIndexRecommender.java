@@ -18,15 +18,6 @@
  */
 package org.apache.pinot.controller.recommender.rules.utils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.pinot.controller.recommender.io.InputManager;
 import org.apache.pinot.controller.recommender.rules.io.configs.IndexConfig;
@@ -43,9 +34,10 @@ import org.apache.pinot.core.query.request.context.predicate.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.pinot.controller.recommender.rules.utils.PredicateParseResult.NESI_ZERO;
-import static org.apache.pinot.controller.recommender.rules.utils.PredicateParseResult.PERCENT_SELECT_ALL;
-import static org.apache.pinot.controller.recommender.rules.utils.PredicateParseResult.PERCENT_SELECT_ZERO;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static org.apache.pinot.controller.recommender.rules.utils.PredicateParseResult.*;
 
 
 /**
@@ -538,11 +530,7 @@ public class QueryInvertedSortedIndexRecommender {
     // Not a valid dimension name
     else if (!_inputManager.isDim(colName)) {
       LOGGER.error("Error: Column {} should not appear in filter", colName);
-      return PredicateParseResult.PredicateParseResultBuilder.aPredicateParseResult()
-          .setCandidateDims(FixedLenBitset.IMMUTABLE_EMPTY_SET)
-          .setIteratorEvalPriorityEnum(IteratorEvalPriorityEnum.SCAN)
-          .setRecommendationPriorityEnum(RecommendationPriorityEnum.NON_CANDIDATE_SCAN).setnESI(numValuesPerEntry)
-          .setPercentSelected(_params.PERCENT_SELECT_FOR_RANGE).setnESIWithIdx(numValuesPerEntry).build();
+      return null;
     }
     // e.g. a > 10 / b between 1 and 10
     else if (type == Predicate.Type.RANGE) {
@@ -585,7 +573,9 @@ public class QueryInvertedSortedIndexRecommender {
 
       boolean isFirst = false;
       List<String> values = (type == Predicate.Type.IN)?((InPredicate) predicate).getValues():((NotInPredicate) predicate).getValues();
-      if (values.get(RecommenderConstants.FIRST).equals(RecommenderConstants.IN_PREDICATE_ESTIMATE_LEN_FLAG) ||
+      if(values.size()==1){
+        numValuesSelected = 1;
+      } else if (values.get(RecommenderConstants.FIRST).equals(RecommenderConstants.IN_PREDICATE_ESTIMATE_LEN_FLAG) ||
           (isFirst=values.get(RecommenderConstants.SECOND).equals(RecommenderConstants.IN_PREDICATE_ESTIMATE_LEN_FLAG))){
         numValuesSelected = Integer.parseInt(values.get(isFirst? RecommenderConstants.FIRST: RecommenderConstants.SECOND));
       } else {

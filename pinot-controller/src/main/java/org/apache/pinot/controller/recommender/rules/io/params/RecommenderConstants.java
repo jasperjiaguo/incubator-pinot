@@ -32,7 +32,7 @@ public class RecommenderConstants {
     public static final double DEFAULT_THRESHOLD_MIN_AND_PREDICATE_INCREMENTAL_VOTE = 0.6d;
     public static final double DEFAULT_THRESHOLD_RATIO_MIN_AND_PREDICATE_TOP_CANDIDATES = 0.8d;
     public static final double DEFAULT_THRESHOLD_RATIO_MIN_GAIN_DIFF_BETWEEN_ITERATION = 0.05d;
-    public static final int DEFAULT_MAX_NUM_ITERATION_WITHOUT_GAIN = 3;
+    public static final int DEFAULT_MAX_NUM_ITERATION_WITHOUT_GAIN = 2;
     public static final double DEFAULT_THRESHOLD_RATIO_MIN_NESI_FOR_TOP_CANDIDATES = 0.7d;
   }
 

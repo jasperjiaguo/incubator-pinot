@@ -216,7 +216,9 @@ public class PinotTablePartitionRule extends AbstractRule {
         InPredicate inPredicate = ((InPredicate) predicate);
         boolean isFirst = false;
         List<String> values = inPredicate.getValues();
-        if (values.get(FIRST).equals(IN_PREDICATE_ESTIMATE_LEN_FLAG) || (isFirst =
+        if (values.size() == 1) {
+          numValuesSelected = 1;
+        } else if (values.get(FIRST).equals(IN_PREDICATE_ESTIMATE_LEN_FLAG) || (isFirst =
             values.get(SECOND).equals(IN_PREDICATE_ESTIMATE_LEN_FLAG))) {
           numValuesSelected = Integer.parseInt(values.get(isFirst ? FIRST : SECOND));
         } else {
