@@ -173,8 +173,9 @@ public class BootstrapTableTool {
 
           TlsSpec tlsSpec = spec.getTlsSpec();
           if (tlsSpec != null) {
-            TlsUtils.installDefaultSSLSocketFactory(tlsSpec.getKeyStorePath(), tlsSpec.getKeyStorePassword(),
-                tlsSpec.getTrustStorePath(), tlsSpec.getTrustStorePassword());
+            TlsUtils.installDefaultSSLSocketFactory(tlsSpec.getKeyStoreType(), tlsSpec.getKeyStorePath(),
+                tlsSpec.getKeyStorePassword(), tlsSpec.getTrustStoreType(), tlsSpec.getTrustStorePath(),
+                tlsSpec.getTrustStorePassword());
           }
 
           spec.setAuthToken(_authToken);
