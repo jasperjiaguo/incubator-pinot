@@ -26,8 +26,10 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class TlsConfig {
   private boolean _clientAuthEnabled;
+  private String _keyStoreType;
   private String _keyStorePath;
   private String _keyStorePassword;
+  private String _trustStoreType;
   private String _trustStorePath;
   private String _trustStorePassword;
 
@@ -37,6 +39,14 @@ public class TlsConfig {
 
   public void setClientAuthEnabled(boolean clientAuthEnabled) {
     _clientAuthEnabled = clientAuthEnabled;
+  }
+
+  public String getKeyStoreType() {
+    return _keyStoreType;
+  }
+
+  public void setKeyStoreType(String keyStoreType) {
+    _keyStoreType = keyStoreType;
   }
 
   public String getKeyStorePath() {
@@ -53,6 +63,14 @@ public class TlsConfig {
 
   public void setKeyStorePassword(String keyStorePassword) {
     _keyStorePassword = keyStorePassword;
+  }
+
+  public String getTrustStoreType() {
+    return _trustStoreType;
+  }
+
+  public void setTrustStoreType(String trustStoreType) {
+    _trustStoreType = trustStoreType;
   }
 
   public String getTrustStorePath() {

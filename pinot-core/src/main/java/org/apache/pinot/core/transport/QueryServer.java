@@ -23,9 +23,9 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.ssl.ClientAuth;
@@ -77,11 +77,11 @@ public class QueryServer {
   }
 
   public void start() {
-    _bossGroup = new NioEventLoopGroup();
-    _workerGroup = new NioEventLoopGroup();
+    _bossGroup = new EpollEventLoopGroup();
+    _workerGroup = new EpollEventLoopGroup();
     try {
       ServerBootstrap serverBootstrap = new ServerBootstrap();
-      _channel = serverBootstrap.group(_bossGroup, _workerGroup).channel(NioServerSocketChannel.class)
+      _channel = serverBootstrap.group(_bossGroup, _workerGroup).channel(EpollServerSocketChannel.class)
           .option(ChannelOption.SO_BACKLOG, 128).childOption(ChannelOption.SO_KEEPALIVE, true)
           .childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
