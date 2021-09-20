@@ -73,8 +73,7 @@ public class PinotScatterGatherQueryClient {
     }
   }
 
-  public static class PinotException
-      extends RuntimeException {
+  public static class PinotException extends RuntimeException {
     private final ErrorCode _errorCode;
 
     public PinotException(ErrorCode errorCode, String message, Throwable t) {
@@ -98,9 +97,13 @@ public class PinotScatterGatherQueryClient {
 
     private final boolean _clientAuthEnabled;
 
+    private final String _trustStoreType;
+
     private final String _trustStorePath;
 
     private final String _trustStorePassword;
+
+    private final String _keyStoreType;
 
     private final String _keyStorePath;
 
@@ -122,8 +125,10 @@ public class PinotScatterGatherQueryClient {
       _clientAuthEnabled = Boolean.parseBoolean(pinotConfigs.get("isClientAuthEnabled").toString());
       _trustStorePath = pinotConfigs.get("trustStorePath").toString();
       _trustStorePassword = pinotConfigs.get("trustStorePassword").toString();
+      _trustStoreType = pinotConfigs.get("trustStoreType").toString();
       _keyStorePath = pinotConfigs.get("keyStorePath").toString();
       _keyStorePassword = pinotConfigs.get("keyStorePassword").toString();
+      _keyStoreType = pinotConfigs.get("keyStoreType").toString();
     }
 
     public Config(long idleTimeoutMillis, int threadPoolSize, int minConnectionsPerServer, int maxBacklogPerServer,
@@ -138,6 +143,8 @@ public class PinotScatterGatherQueryClient {
       _trustStorePassword = null;
       _keyStorePath = null;
       _keyStorePassword = null;
+      _trustStoreType = null;
+      _keyStoreType = null;
     }
 
     public int getThreadPoolSize() {
@@ -167,12 +174,20 @@ public class PinotScatterGatherQueryClient {
       return _clientAuthEnabled;
     }
 
+    public String getTrustStoreType() {
+      return _trustStoreType;
+    }
+
     public String getTrustStorePath() {
       return _trustStorePath;
     }
 
     public String getTrustStorePassword() {
       return _trustStorePassword;
+    }
+
+    public String getKeyStoreType() {
+      return _keyStoreType;
     }
 
     public String getKeyStorePath() {
@@ -201,8 +216,10 @@ public class PinotScatterGatherQueryClient {
   private TlsConfig getTlsConfig(Config pinotConfig) {
     TlsConfig tlsConfig = new TlsConfig();
     tlsConfig.setClientAuthEnabled(pinotConfig.isClientAuthEnabled());
+    tlsConfig.setTrustStoreType(pinotConfig.getTrustStoreType());
     tlsConfig.setTrustStorePath(pinotConfig.getTrustStorePath());
     tlsConfig.setTrustStorePassword(pinotConfig.getTrustStorePassword());
+    tlsConfig.setKeyStoreType(pinotConfig.getKeyStoreType());
     tlsConfig.setKeyStorePath(pinotConfig.getKeyStorePath());
     tlsConfig.setKeyStorePassword(pinotConfig.getKeyStorePassword());
     return tlsConfig;
