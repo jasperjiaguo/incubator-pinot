@@ -39,6 +39,8 @@ import org.apache.pinot.common.utils.DataTable.MetadataKey;
 import org.apache.pinot.core.common.datatable.DataTableBuilder;
 import org.apache.pinot.core.query.request.ServerQueryRequest;
 import org.apache.pinot.core.query.scheduler.QueryScheduler;
+import org.apache.pinot.server.access.AccessControl;
+import org.apache.pinot.server.access.AccessControlFactory;
 import org.apache.pinot.spi.utils.BytesUtils;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -60,10 +62,13 @@ public class InstanceRequestHandler extends SimpleChannelInboundHandler<ByteBuf>
   private final TDeserializer _deserializer = new TDeserializer(new TCompactProtocol.Factory());
   private final QueryScheduler _queryScheduler;
   private final ServerMetrics _serverMetrics;
+  private final AccessControl _accessControl;
 
-  public InstanceRequestHandler(QueryScheduler queryScheduler, ServerMetrics serverMetrics) {
+  public InstanceRequestHandler(QueryScheduler queryScheduler, ServerMetrics serverMetrics,
+      AccessControl accessControl) {
     _queryScheduler = queryScheduler;
     _serverMetrics = serverMetrics;
+    _accessControl = accessControl;
   }
 
   /**
@@ -78,6 +83,9 @@ public class InstanceRequestHandler extends SimpleChannelInboundHandler<ByteBuf>
     String tableNameWithType = null;
 
     try {
+      if(!_accessControl.hasDataAccess(ctx)){
+        throw new Exception("Unauthorized access to pinot-server");
+      }
       // Put all code inside try block to catch all exceptions.
       int requestSize = msg.readableBytes();
 

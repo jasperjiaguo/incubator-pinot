@@ -34,6 +34,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.pinot.common.metrics.ServerMetrics;
 import org.apache.pinot.core.query.scheduler.QueryScheduler;
 import org.apache.pinot.core.util.TlsUtils;
+import org.apache.pinot.server.access.AccessControl;
+import org.apache.pinot.server.access.AccessControlFactory;
 
 
 /**
@@ -45,6 +47,7 @@ public class QueryServer {
   private final QueryScheduler _queryScheduler;
   private final ServerMetrics _serverMetrics;
   private final TlsConfig _tlsConfig;
+  private final AccessControl _accessControl;
 
   private EventLoopGroup _bossGroup;
   private EventLoopGroup _workerGroup;
@@ -52,28 +55,31 @@ public class QueryServer {
 
   /**
    * Create an unsecured server instance
-   *
-   * @param port bind port
+   *  @param port bind port
    * @param queryScheduler query scheduler
    * @param serverMetrics server metrics
+   * @param accessControlFactory
    */
-  public QueryServer(int port, QueryScheduler queryScheduler, ServerMetrics serverMetrics) {
-    this(port, queryScheduler, serverMetrics, null);
+  public QueryServer(int port, QueryScheduler queryScheduler, ServerMetrics serverMetrics,
+      AccessControlFactory accessControlFactory) {
+    this(port, queryScheduler, serverMetrics, null, accessControlFactory);
   }
 
   /**
    * Create a server instance with TLS config
-   *
-   * @param port bind port
+   *  @param port bind port
    * @param queryScheduler query scheduler
    * @param serverMetrics server metrics
    * @param tlsConfig TLS/SSL config
+   * @param accessControlFactory
    */
-  public QueryServer(int port, QueryScheduler queryScheduler, ServerMetrics serverMetrics, TlsConfig tlsConfig) {
+  public QueryServer(int port, QueryScheduler queryScheduler, ServerMetrics serverMetrics, TlsConfig tlsConfig,
+      AccessControlFactory accessControlFactory) {
     _port = port;
     _queryScheduler = queryScheduler;
     _serverMetrics = serverMetrics;
     _tlsConfig = tlsConfig;
+    _accessControl = accessControlFactory.create();
   }
 
   public void start() {
@@ -93,7 +99,7 @@ public class QueryServer {
               ch.pipeline()
                   .addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, Integer.BYTES, 0, Integer.BYTES),
                       new LengthFieldPrepender(Integer.BYTES),
-                      new InstanceRequestHandler(_queryScheduler, _serverMetrics));
+                      new InstanceRequestHandler(_queryScheduler, _serverMetrics, _accessControl));
             }
           }).bind(_port).sync().channel();
     } catch (Exception e) {
