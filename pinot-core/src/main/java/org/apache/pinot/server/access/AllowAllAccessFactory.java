@@ -16,13 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.pinot.server.api.access;
+package org.apache.pinot.server.access;
 
+import io.netty.channel.ChannelHandlerContext;
 import javax.ws.rs.core.HttpHeaders;
 
 
 public class AllowAllAccessFactory implements AccessControlFactory {
   private static final AccessControl ALLOW_ALL_ACCESS = new AccessControl() {
+    @Override
+    public boolean hasQueryServerAccess(ChannelHandlerContext channelHandlerContext) {
+      return true;
+    }
+
     @Override
     public boolean hasDataAccess(HttpHeaders httpHeaders, String tableName) {
       return true;

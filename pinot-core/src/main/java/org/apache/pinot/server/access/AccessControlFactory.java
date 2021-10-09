@@ -16,23 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.pinot.server.api.access;
+package org.apache.pinot.server.access;
 
-import javax.ws.rs.core.HttpHeaders;
 import org.apache.pinot.spi.annotations.InterfaceAudience;
 import org.apache.pinot.spi.annotations.InterfaceStability;
 
 
 @InterfaceAudience.Public
 @InterfaceStability.Stable
-public interface AccessControl {
+public interface AccessControlFactory {
 
-  /**
-   * Return whether the client has data access to the given table.
-   *
-   * @param httpHeaders Http headers
-   * @param tableName Name of the table to be accessed
-   * @return Whether the client has data access to the table
-   */
-  boolean hasDataAccess(HttpHeaders httpHeaders, String tableName);
+  AccessControl create();
 }
