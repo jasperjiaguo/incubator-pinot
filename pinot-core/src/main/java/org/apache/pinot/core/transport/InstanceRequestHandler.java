@@ -25,6 +25,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.ssl.SslHandshakeCompletionEvent;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
@@ -70,6 +71,17 @@ public class InstanceRequestHandler extends SimpleChannelInboundHandler<ByteBuf>
     _accessControl = accessControl;
   }
 
+  @Override
+  public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+    super.userEventTriggered(ctx, evt);
+    if (evt instanceof SslHandshakeCompletionEvent) {
+      if (!_accessControl.hasQueryServerAccess(ctx)) {
+        ctx.disconnect();
+        LOGGER.error("Exception while processing instance request: Unauthorized access to pinot-server");
+      }
+    }
+  }
+
   /**
    * Always return a response even when query execution throws exception; otherwise, broker
    * will keep waiting until timeout.
@@ -82,9 +94,6 @@ public class InstanceRequestHandler extends SimpleChannelInboundHandler<ByteBuf>
     String tableNameWithType = null;
 
     try {
-      if (!_accessControl.hasQueryServerAccess(ctx)) {
-        throw new Exception("Unauthorized access to pinot-server");
-      }
       // Put all code inside try block to catch all exceptions.
       int requestSize = msg.readableBytes();
 
