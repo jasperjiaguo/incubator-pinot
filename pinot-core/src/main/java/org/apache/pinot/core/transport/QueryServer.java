@@ -30,6 +30,7 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
 import java.util.concurrent.TimeUnit;
 import org.apache.pinot.common.metrics.ServerMetrics;
 import org.apache.pinot.core.query.scheduler.QueryScheduler;
@@ -118,7 +119,9 @@ public class QueryServer {
         throw new IllegalArgumentException("Must provide key store path for secured server");
       }
 
-      SslContextBuilder sslContextBuilder = SslContextBuilder.forServer(TlsUtils.createKeyManagerFactory(_tlsConfig));
+      SslContextBuilder sslContextBuilder = SslContextBuilder
+          .forServer(TlsUtils.createKeyManagerFactory(_tlsConfig))
+          .sslProvider(SslProvider.OPENSSL);
 
       if (_tlsConfig.getTrustStorePath() != null) {
         sslContextBuilder.trustManager(TlsUtils.createTrustManagerFactory(_tlsConfig));
