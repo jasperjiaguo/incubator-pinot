@@ -33,6 +33,7 @@
   <url>https://pinot.apache.org/</url>
   <properties>
     <pinot.root>${basedir}/..</pinot.root>
+    <netty-tcnative.version>2.0.35.Final</netty-tcnative.version>
   </properties>
 
   <build>
