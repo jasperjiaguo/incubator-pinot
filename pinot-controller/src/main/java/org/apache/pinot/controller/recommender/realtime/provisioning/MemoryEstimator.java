@@ -32,7 +32,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.pinot.common.function.scalar.DateTimeFunctions;
 import org.apache.pinot.common.metadata.segment.SegmentZKMetadata;
+import org.apache.pinot.common.metrics.ServerMetrics;
 import org.apache.pinot.controller.recommender.data.generator.DataGenerator;
 import org.apache.pinot.controller.recommender.data.generator.DataGeneratorSpec;
 import org.apache.pinot.controller.recommender.io.metadata.DateTimeFieldSpecMetadata;
@@ -40,10 +42,12 @@ import org.apache.pinot.controller.recommender.io.metadata.FieldMetadata;
 import org.apache.pinot.controller.recommender.io.metadata.SchemaWithMetaData;
 import org.apache.pinot.controller.recommender.io.metadata.TimeFieldSpecMetadata;
 import org.apache.pinot.controller.recommender.io.metadata.TimeGranularitySpecMetadata;
+import org.apache.pinot.plugin.metrics.dropwizard.DropwizardMetricsRegistry;
 import org.apache.pinot.segment.local.indexsegment.immutable.ImmutableSegmentLoader;
 import org.apache.pinot.segment.local.indexsegment.mutable.MutableSegmentImpl;
 import org.apache.pinot.segment.local.io.readerwriter.RealtimeIndexOffHeapMemoryManager;
 import org.apache.pinot.segment.local.io.writer.impl.DirectMemoryManager;
+import org.apache.pinot.segment.local.realtime.converter.RealtimeSegmentConverter;
 import org.apache.pinot.segment.local.realtime.impl.RealtimeSegmentConfig;
 import org.apache.pinot.segment.local.realtime.impl.RealtimeSegmentStatsHistory;
 import org.apache.pinot.segment.local.segment.creator.impl.SegmentIndexCreationDriverImpl;
@@ -84,7 +88,9 @@ public class MemoryEstimator {
 
   private SegmentMetadataImpl _segmentMetadata;
   private long _sampleCompletedSegmentSizeBytes;
-  private Set<String> _invertedIndexColumns = new HashSet<>();
+  private Set<String> _invertedIndexColumns = new HashSet<>() {{
+    add("actorId");
+  }};
   private Set<String> _noDictionaryColumns = new HashSet<>();
   private Set<String> _varLengthDictionaryColumns = new HashSet<>();
   int _avgMultiValues;
@@ -189,6 +195,32 @@ public class MemoryEstimator {
       throw new RuntimeException("Caught exception when indexing rows");
     }
 
+    final long start = DateTimeFunctions.now();
+    try {
+        // Build a segment from in-memory rows.If buildTgz is true, then build the tar.gz file as well
+        // TODO Use an auto-closeable object to delete temp resources.
+        File tempSegmentFolder = new File("/Users/jiaguo/workspace/oncall/CountableImpressionDiscounting/out/");
+        // lets convert the segment now
+        Schema schema = Schema
+            .fromFile(new File("/Users/jiaguo/workspace/oncall/CountableImpressionDiscounting/schema"));
+        RealtimeSegmentConverter converter =
+            new RealtimeSegmentConverter(mutableSegmentImpl, tempSegmentFolder.getAbsolutePath(),
+                schema,
+                _tableNameWithType, _tableConfig, "testSegment", "actorId",
+                new ArrayList<String>(),
+                new ArrayList<String>(),
+                new ArrayList<String>(),
+                new ArrayList<String>(_noDictionaryColumns),
+                new ArrayList<String>(_varLengthDictionaryColumns), true);
+
+      converter.build(null, new ServerMetrics(new DropwizardMetricsRegistry()));
+      System.out.println("Segment build successful");
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.out.println("Segment build failed");
+    }
+    final long stop = DateTimeFunctions.now();
+    System.out.println("Time used: " + (stop - start) / 1000);
     // dump stats into stats file
     mutableSegmentImpl.destroy();
 
