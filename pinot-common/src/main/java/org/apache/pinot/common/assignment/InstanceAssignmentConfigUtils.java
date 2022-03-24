@@ -46,8 +46,8 @@ public class InstanceAssignmentConfigUtils {
     Map<InstancePartitionsType, InstanceAssignmentConfig> instanceAssignmentConfigMap =
         tableConfig.getInstanceAssignmentConfigMap();
     return (instanceAssignmentConfigMap != null
-        && instanceAssignmentConfigMap.get(InstancePartitionsType.COMPLETED) != null) || TagNameUtils
-        .isRelocateCompletedSegments(tableConfig.getTenantConfig());
+        && instanceAssignmentConfigMap.get(InstancePartitionsType.COMPLETED) != null)
+        || TagNameUtils.isRelocateCompletedSegments(tableConfig.getTenantConfig());
   }
 
   /**
@@ -64,8 +64,8 @@ public class InstanceAssignmentConfigUtils {
       case OFFLINE:
         return tableType == TableType.OFFLINE && ((instanceAssignmentConfigMap != null
             && instanceAssignmentConfigMap.get(InstancePartitionsType.OFFLINE) != null)
-            || AssignmentStrategy.REPLICA_GROUP_SEGMENT_ASSIGNMENT_STRATEGY
-            .equalsIgnoreCase(tableConfig.getValidationConfig().getSegmentAssignmentStrategy()));
+            || AssignmentStrategy.REPLICA_GROUP_SEGMENT_ASSIGNMENT_STRATEGY.equalsIgnoreCase(
+            tableConfig.getValidationConfig().getSegmentAssignmentStrategy()));
       // Allow CONSUMING/COMPLETED instance assignment if the real-time table has it configured
       case CONSUMING:
       case COMPLETED:
@@ -120,6 +120,6 @@ public class InstanceAssignmentConfigUtils {
           replicaGroupStrategyConfig.getNumInstancesPerPartition(), 0, 0, minimizeDataMovement);
     }
 
-    return new InstanceAssignmentConfig(tagPoolConfig, null, replicaGroupPartitionConfig);
+    return new InstanceAssignmentConfig(tagPoolConfig, null, replicaGroupPartitionConfig, null);
   }
 }

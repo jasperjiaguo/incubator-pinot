@@ -201,7 +201,7 @@ public class TableRebalancerClusterStatelessTest extends ControllerTest {
     InstanceReplicaGroupPartitionConfig replicaGroupPartitionConfig =
         new InstanceReplicaGroupPartitionConfig(true, 0, NUM_REPLICAS, 0, 0, 0, false);
     tableConfig.setInstanceAssignmentConfigMap(Collections.singletonMap(InstancePartitionsType.OFFLINE,
-        new InstanceAssignmentConfig(tagPoolConfig, null, replicaGroupPartitionConfig)));
+        new InstanceAssignmentConfig(tagPoolConfig, null, replicaGroupPartitionConfig, null)));
     _helixResourceManager.updateTableConfig(tableConfig);
 
     // No need to reassign instances because instances should be automatically assigned when updating the table config
