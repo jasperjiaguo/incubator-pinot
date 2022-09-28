@@ -74,8 +74,6 @@ public final class AndDocIdSet implements FilterBlockDocIdSet {
         sortedDocIdIterators.add((SortedDocIdIterator) docIdIterator);
       } else if (docIdIterator instanceof BitmapBasedDocIdIterator) {
         bitmapBasedDocIdIterators.add((BitmapBasedDocIdIterator) docIdIterator);
-      } else if (docIdIterator instanceof ScanBasedDocIdIterator) {
-        scanBasedDocIdIterators.add((ScanBasedDocIdIterator) docIdIterator);
       } else {
         remainingDocIdIterators.add(docIdIterator);
       }
@@ -129,9 +127,6 @@ public final class AndDocIdSet implements FilterBlockDocIdSet {
           }
           docIds = mutableDocIds;
         }
-      }
-      for (ScanBasedDocIdIterator scanBasedDocIdIterator : scanBasedDocIdIterators) {
-        docIds = scanBasedDocIdIterator.applyAnd(docIds);
       }
       RangelessBitmapDocIdIterator rangelessBitmapDocIdIterator = new RangelessBitmapDocIdIterator(docIds);
       if (numRemainingDocIdIterators == 0) {
