@@ -1834,8 +1834,17 @@ public class PinotHelixResourceManager {
       for (InstancePartitionsType instancePartitionsType : instancePartitionsTypesToAssign) {
         boolean hasPreConfiguredInstancePartitions =
             TableConfigUtils.hasPreConfiguredInstancePartitions(tableConfig, instancePartitionsType);
+        boolean isPreConfigurationBasedAssignment =
+            InstanceAssignmentConfigUtils.isPreConfigurationBasedAssignment(tableConfig, instancePartitionsType);
         InstancePartitions instancePartitions;
         if (!hasPreConfiguredInstancePartitions) {
+          instancePartitions = instanceAssignmentDriver.assignInstances(instancePartitionsType, instanceConfigs, null);
+          LOGGER.info("Persisting instance partitions: {}", instancePartitions);
+          InstancePartitionsUtils.persistInstancePartitions(_propertyStore, instancePartitions);
+        } else if (isPreConfigurationBasedAssignment){
+          String referenceInstancePartitionsName = tableConfig.getInstancePartitionsMap().get(instancePartitionsType);
+          instancePartitions = InstancePartitionsUtils.fetchInstancePartitionsWithRename(_propertyStore,
+              referenceInstancePartitionsName, instancePartitionsType.getInstancePartitionsName(rawTableName));
           instancePartitions = instanceAssignmentDriver.assignInstances(instancePartitionsType, instanceConfigs, null);
           LOGGER.info("Persisting instance partitions: {}", instancePartitions);
           InstancePartitionsUtils.persistInstancePartitions(_propertyStore, instancePartitions);
