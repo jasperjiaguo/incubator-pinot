@@ -184,6 +184,8 @@ public class PreConfiguredInstancePartitionSelector extends InstancePartitionSel
         Set<Integer> usedInstanceOffsets = new HashSet<>();
         List<Map.Entry<Integer, Long>> results = new ArrayList<>(_numTargetInstancesPerReplicaGroup);
 
+        // For each instance offset, find the mirrored server that is most similar to the existing mirrored server
+        // set. If the mirrored server is not used, add it to the result list.
         for (int j = 0; j < _numExistingInstancesPerReplicaGroup; j++) {
           List<String> existingMirroredServers = _existingMirroredServerLists.get(j);
           existingMirroredServers.stream()
@@ -196,6 +198,8 @@ public class PreConfiguredInstancePartitionSelector extends InstancePartitionSel
               });
         }
 
+        // If the search result is less than the target number of instances per replica group, add the remaining
+        // instances from the pre-configured instance partitions. This happens during instance swap/uplift
         if (results.size() <= _numTargetInstancesPerReplicaGroup) {
           for (int i = 0, j = 0; i < _numTargetInstancesPerReplicaGroup - results.size(); j++) {
             if (!usedInstanceOffsets.contains(j)) {
@@ -218,6 +222,8 @@ public class PreConfiguredInstancePartitionSelector extends InstancePartitionSel
             instancePartitions.setInstances(0, i, resultReplicaGroups.get(i));
           }
         } else {
+          // TODO: downlift is a more rare case, we will handle this later with minimum-movement
+          //  segment assignment strategy
           throw new IllegalStateException("Downlift by instance per replica group is not supported yet");
         }
       }
