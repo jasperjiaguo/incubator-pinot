@@ -19,8 +19,11 @@
 package org.apache.pinot.core.transport;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.pinot.common.datatable.DataTable;
 import org.apache.pinot.common.datatable.DataTableFactory;
 import org.apache.pinot.common.metrics.BrokerMeter;
@@ -40,12 +43,17 @@ public class DataTableHandler extends SimpleChannelInboundHandler<ByteBuf> {
   private final QueryRouter _queryRouter;
   private final ServerRoutingInstance _serverRoutingInstance;
   private final BrokerMetrics _brokerMetrics;
+  private ConcurrentHashMap<ServerRoutingInstance, ServerChannels.ServerChannel> _serverToChannelMap;
+
+  private static final AtomicBoolean DIRECT_OOM_SHUTTING_DOWN = new AtomicBoolean(false);
 
   public DataTableHandler(QueryRouter queryRouter, ServerRoutingInstance serverRoutingInstance,
-      BrokerMetrics brokerMetrics) {
+      BrokerMetrics brokerMetrics,
+      ConcurrentHashMap<ServerRoutingInstance, ServerChannels.ServerChannel> serverToChannelMap) {
     _queryRouter = queryRouter;
     _serverRoutingInstance = serverRoutingInstance;
     _brokerMetrics = brokerMetrics;
+    _serverToChannelMap = serverToChannelMap;
   }
 
   @Override
@@ -55,6 +63,10 @@ public class DataTableHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
   @Override
   public void channelInactive(ChannelHandlerContext ctx) {
+    if (DIRECT_OOM_SHUTTING_DOWN.get()) {
+      _queryRouter.markServerDown(_serverRoutingInstance, new RuntimeException("Broker running out of direct memory"));
+      return;
+    }
     LOGGER.error("Channel for server: {} is now inactive, marking server down", _serverRoutingInstance);
     _queryRouter.markServerDown(_serverRoutingInstance,
         new RuntimeException(String.format("Channel for server: %s is inactive", _serverRoutingInstance)));
@@ -83,5 +95,35 @@ public class DataTableHandler extends SimpleChannelInboundHandler<ByteBuf> {
   public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
     LOGGER.error("Caught exception while handling response from server: {}", _serverRoutingInstance, cause);
     _brokerMetrics.addMeteredGlobalValue(BrokerMeter.RESPONSE_FETCH_EXCEPTIONS, 1);
+    handleDirectMemoryOOM(ctx, cause);
+  }
+
+  // Handling netty direct memory OOM. In this case there is a great chance that multiple channels are receiving
+  // large data tables from servers concurrently. We want to close all channels to servers to proactively release
+  // the direct memory, because the execution of netty threads can deadlock in allocating direct memory, in which case
+  // no one will reach channelRead0.
+  private void handleDirectMemoryOOM(ChannelHandlerContext ctx, Throwable cause) {
+    if (cause instanceof OutOfMemoryError && cause.getMessage().contains("Direct buffer")
+        && DIRECT_OOM_SHUTTING_DOWN.compareAndSet(false, true)) {
+      // only one thread can get here and do the shutdown
+      try {
+        // close all channels to servers
+        _serverToChannelMap.keySet().forEach(serverRoutingInstance -> {
+          Channel channel = _serverToChannelMap.get(serverRoutingInstance)._channel;
+          if (channel != null) {
+            channel.close();
+          }
+          _serverToChannelMap.remove(serverRoutingInstance);
+        });
+        LOGGER.error("Closing ALL channels to servers, as we are running out of direct buffer "
+            + "while receiving response from {}", _serverRoutingInstance);
+        // sleep for 100ms to give time for other channels to populate the error message
+        Thread.sleep(5000);
+      } catch (Exception e) {
+        LOGGER.error("Caught exception while closing channels to servers", e);
+      } finally {
+        DIRECT_OOM_SHUTTING_DOWN.set(false);
+      }
+    }
   }
 }

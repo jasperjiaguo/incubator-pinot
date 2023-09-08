@@ -22,6 +22,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.pinot.common.config.TlsConfig;
 import org.apache.pinot.common.metrics.BrokerMetrics;
 import org.apache.pinot.common.metrics.ServerMetrics;
@@ -75,8 +76,9 @@ public class ChannelHandlerFactory {
    * handle the serialized data table responses sent from Pinot Server.
    */
   public static ChannelHandler getDataTableHandler(QueryRouter queryRouter, ServerRoutingInstance serverRoutingInstance,
-      BrokerMetrics brokerMetrics) {
-    return new DataTableHandler(queryRouter, serverRoutingInstance, brokerMetrics);
+      BrokerMetrics brokerMetrics,
+      ConcurrentHashMap<ServerRoutingInstance, ServerChannels.ServerChannel> serverToChannelMap) {
+    return new DataTableHandler(queryRouter, serverRoutingInstance, brokerMetrics, serverToChannelMap);
   }
 
   /**

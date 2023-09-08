@@ -33,12 +33,11 @@ import java.util.stream.IntStream;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
-import org.apache.pinot.common.exception.QueryException;
 import org.apache.pinot.core.accounting.PerQueryCPUMemAccountantFactory;
 import org.apache.pinot.core.accounting.PerQueryCPUMemAccountantFactoryForTest;
+import org.apache.pinot.core.transport.DataTableHandler;
 import org.apache.pinot.spi.accounting.ThreadResourceUsageProvider;
 import org.apache.pinot.spi.config.instance.InstanceType;
 import org.apache.pinot.spi.config.table.TableConfig;
@@ -92,8 +91,7 @@ public class OfflineClusterMemBasedBrokerQueryKillingTest extends BaseClusterInt
   }
 
   @BeforeClass
-  public void setUp()
-      throws Exception {
+  public void setUp() throws Exception {
     LogManager.getLogger(PerQueryCPUMemAccountantFactory.PerQueryCPUMemResourceUsageAccountant.class)
         .setLevel(Level.ERROR);
     ThreadResourceUsageProvider.setThreadCpuTimeMeasurementEnabled(true);
@@ -134,6 +132,7 @@ public class OfflineClusterMemBasedBrokerQueryKillingTest extends BaseClusterInt
     LogManager.getLogger(OfflineClusterMemBasedBrokerQueryKillingTest.class).setLevel(Level.INFO);
     LogManager.getLogger(PerQueryCPUMemAccountantFactory.PerQueryCPUMemResourceUsageAccountant.class)
         .setLevel(Level.INFO);
+    LogManager.getLogger(DataTableHandler.class).setLevel(Level.INFO);
     LogManager.getLogger(ThreadResourceUsageProvider.class).setLevel(Level.INFO);
     LogManager.getLogger(Tracing.class).setLevel(Level.INFO);
   }
@@ -167,7 +166,7 @@ public class OfflineClusterMemBasedBrokerQueryKillingTest extends BaseClusterInt
     brokerConf.setProperty(CommonConstants.PINOT_QUERY_SCHEDULER_PREFIX + "."
         + CommonConstants.Accounting.CONFIG_OF_ENABLE_THREAD_CPU_SAMPLING, false);
     brokerConf.setProperty(CommonConstants.PINOT_QUERY_SCHEDULER_PREFIX + "."
-        + CommonConstants.Accounting.CONFIG_OF_OOM_PROTECTION_KILLING_QUERY, true);
+        + CommonConstants.Accounting.CONFIG_OF_OOM_PROTECTION_KILLING_QUERY, false);
     brokerConf.setProperty(CommonConstants.Broker.CONFIG_OF_ENABLE_THREAD_ALLOCATED_BYTES_MEASUREMENT, true);
   }
 
@@ -207,13 +206,12 @@ public class OfflineClusterMemBasedBrokerQueryKillingTest extends BaseClusterInt
         .build();
   }
 
-
   @Test
-  public void testDigestOOMMultipleQueries()
-      throws Exception {
+  public void testDigestOOMMultipleQueries() throws Exception {
     AtomicReference<JsonNode> queryResponse1 = new AtomicReference<>();
     AtomicReference<JsonNode> queryResponse2 = new AtomicReference<>();
     AtomicReference<JsonNode> queryResponse3 = new AtomicReference<>();
+    AtomicReference<JsonNode> queryResponse4 = new AtomicReference<>();
 
     CountDownLatch countDownLatch = new CountDownLatch(3);
 
@@ -245,17 +243,16 @@ public class OfflineClusterMemBasedBrokerQueryKillingTest extends BaseClusterInt
         }
     );
     countDownLatch.await();
-    Assert.assertTrue(queryResponse1.get().get("exceptions").toString().contains(
-        "Interrupted in broker reduce phase"));
-    Assert.assertTrue(queryResponse1.get().get("exceptions").toString().contains("\"errorCode\":"
-        + QueryException.QUERY_CANCELLATION_ERROR_CODE));
-    Assert.assertTrue(queryResponse1.get().get("exceptions").toString().contains("got killed because"));
-    Assert.assertFalse(StringUtils.isEmpty(queryResponse2.get().get("exceptions").toString()));
-    Assert.assertFalse(StringUtils.isEmpty(queryResponse3.get().get("exceptions").toString()));
+
+    queryResponse4.set(postQuery(COUNT_STAR_QUERY));
+
+    System.out.println(queryResponse1.get().toString());
+
+    Assert.assertTrue(queryResponse1.get().get("exceptions").toString().contains("is too large"));
+    Assert.assertTrue(queryResponse4.get().get("exceptions").isEmpty());
   }
 
-  private List<File> createAvroFile()
-      throws IOException {
+  private List<File> createAvroFile() throws IOException {
 
     // create avro schema
     org.apache.avro.Schema avroSchema = org.apache.avro.Schema.createRecord("myRecord", null, null, false);

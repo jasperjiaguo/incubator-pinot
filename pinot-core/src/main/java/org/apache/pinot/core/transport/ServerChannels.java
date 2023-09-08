@@ -61,8 +61,8 @@ import org.slf4j.LoggerFactory;
  */
 @ThreadSafe
 public class ServerChannels {
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServerChannels.class);
   public static final String CHANNEL_LOCK_TIMEOUT_MSG = "Timeout while acquiring channel lock";
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServerChannels.class);
   private static final long TRY_CONNECT_CHANNEL_LOCK_TIMEOUT_MS = 5_000L;
 
   private final QueryRouter _queryRouter;
@@ -124,8 +124,7 @@ public class ServerChannels {
   }
 
   public void sendRequest(String rawTableName, AsyncQueryResponse asyncQueryResponse,
-      ServerRoutingInstance serverRoutingInstance, InstanceRequest instanceRequest, long timeoutMs)
-      throws Exception {
+      ServerRoutingInstance serverRoutingInstance, InstanceRequest instanceRequest, long timeoutMs) throws Exception {
     byte[] requestBytes = _threadLocalTSerializer.get().serialize(instanceRequest);
     _serverToChannelMap.computeIfAbsent(serverRoutingInstance, ServerChannel::new)
         .sendRequest(rawTableName, asyncQueryResponse, serverRoutingInstance, requestBytes, timeoutMs);
@@ -142,7 +141,7 @@ public class ServerChannels {
   }
 
   @ThreadSafe
-  private class ServerChannel {
+  class ServerChannel {
     final ServerRoutingInstance _serverRoutingInstance;
     final Bootstrap _bootstrap;
     // lock to protect channel as requests must be written into channel sequentially
@@ -166,8 +165,10 @@ public class ServerChannels {
               ch.pipeline().addLast(ChannelHandlerFactory.getLengthFieldPrepender());
               // NOTE: data table de-serialization happens inside this handler
               // Revisit if this becomes a bottleneck
-              ch.pipeline().addLast(
-                  ChannelHandlerFactory.getDataTableHandler(_queryRouter, _serverRoutingInstance, _brokerMetrics));
+              ch.pipeline()
+                  .addLast(
+                      ChannelHandlerFactory.getDataTableHandler(_queryRouter, _serverRoutingInstance, _brokerMetrics,
+                          _serverToChannelMap));
             }
           });
     }
@@ -187,8 +188,7 @@ public class ServerChannels {
       }
     }
 
-    void connectWithoutLocking()
-        throws InterruptedException {
+    void connectWithoutLocking() throws InterruptedException {
       if (_channel == null || !_channel.isActive()) {
         long startTime = System.currentTimeMillis();
         _channel = _bootstrap.connect().sync().channel();
