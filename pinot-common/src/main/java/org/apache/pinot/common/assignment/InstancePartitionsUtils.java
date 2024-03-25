@@ -65,7 +65,8 @@ public class InstancePartitionsUtils {
     String rawTableName = TableNameBuilder.extractRawTableName(tableNameWithType);
 
     // If table has pre-configured instance partitions.
-    if (TableConfigUtils.hasPreConfiguredInstancePartitions(tableConfig, instancePartitionsType)) {
+    if (TableConfigUtils.hasPreConfiguredInstancePartitions(tableConfig, instancePartitionsType) &&
+        !InstanceAssignmentConfigUtils.isMirrorServerSetAssignment(tableConfig, instancePartitionsType)) {
       return fetchInstancePartitionsWithRename(helixManager.getHelixPropertyStore(),
           tableConfig.getInstancePartitionsMap().get(instancePartitionsType),
           instancePartitionsType.getInstancePartitionsName(rawTableName));
